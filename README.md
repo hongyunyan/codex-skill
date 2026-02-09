@@ -1,17 +1,17 @@
-Review 他人/自己代码
-review https://github.com/pingcap/ticdc/pull/3803
+1. Review PR
+   > review <pr-link> 
 
-分析 CI 上失败的 case
-ci-diagnose fix(*): merge operator inconsistent after maintainer move by wlwilliamx · Pull Request #3769 · pingc <--job pull-cdc-mysql-integration-heavy --groups group1,group3>
+2. Analyze the failed case in ci
+   > ci-diagnose <pr-link> 
 
-根据设计文档开发
-dev-with-doc xxx.md <--desc "一句话描述要做什么（可空）”>
+3. Development based on design doc
+   > dev-with-doc xxx.md <--desc "xx">
 
-review 自己的代码
-review-self <rfc-xxx.md>
+4. review code based on design doc
+   > review-self <rfc-xxx.md>
 
-根据方案写 design doc
-write-design-doc ci-diagnose
+5. write design doc based on discussion
+   > write-design-doc <design-name>
 
-根据方案生成 design doc，做开发，并且 review
-ship-with-doc <feature-slug> --title "设计文档标题" --desc "一句话描述这次要实现什么（可选）"
+6. write design doc based on discussion, then develop based on design, and review code
+   > ship-with-doc <feature-slug> --title "xx" --desc "xx"
