@@ -1,6 +1,6 @@
 ---
 name: cherry-pick-release-pr
-description: Backport a merged GitHub pull request to a release branch through a repository cherry-pick bot, then monitor the generated PR, inspect and fix conflicts or conflict markers, compare original and cherry-pick diff statistics, push any required fixes, and observe checks. Use when the user asks to cherry-pick/backport a PR to a release branch, reply with a `/cherry-pick release-branch` command, check the generated PR for conflicts, or explain why generated PR line counts differ from the original PR.
+description: Backport a merged GitHub pull request to a release branch through a repository cherry-pick bot, defaulting to release-8.5 unless the user explicitly names another target branch, then monitor the generated PR, inspect and fix conflicts or conflict markers, compare original and cherry-pick diff statistics, push any required fixes, and observe checks. Use when the user asks to cherry-pick/backport a PR, reply with a `/cherry-pick release-branch` command, check the generated PR for conflicts, or explain why generated PR line counts differ from the original PR.
 ---
 
 # Cherry Pick Release PR
@@ -9,15 +9,19 @@ description: Backport a merged GitHub pull request to a release branch through a
 
 Use this workflow for GitHub repositories that support a PR comment command such as `/cherry-pick release-x.y`.
 Drive the request end to end: trigger the bot, find the generated PR, audit it for conflicts and diff drift, fix only what is needed, push to the generated PR branch, and report final status.
+Default the target branch to `release-8.5` unless the user explicitly provides a different target branch.
 
 ## Workflow
 
 1. Resolve the original PR and target release branch.
+   - If the user does not specify a target branch, use `release-8.5`.
+   - If the user explicitly names another target branch, use that branch for the whole workflow.
    - Get PR metadata: title, state, merge status, base/head refs, merge commit, changed file count, additions, and deletions.
    - Confirm the target branch exists locally or remotely. Fetch the target branch before local comparisons.
    - Check recent PR comments for an existing identical `/cherry-pick <branch>` command to avoid duplicate PRs.
 
 2. Trigger the cherry-pick bot.
+   - Use `/cherry-pick release-8.5` by default.
    - Prefer GitHub connector comments when available.
    - If connector writes are forbidden, use the authenticated `gh` CLI, for example `gh pr comment <pr> --repo <owner/repo> --body '/cherry-pick <branch>'`.
    - Record the comment URL or comment ID when available.
@@ -71,11 +75,12 @@ Drive the request end to end: trigger the bot, find the generated PR, audit it f
 Use command variants that match the repository and available tools:
 
 ```bash
+target_branch="${TARGET_BRANCH:-release-8.5}"
 gh pr view <original-pr> --repo <owner/repo> --json number,title,state,mergedAt,baseRefName,headRefName,baseRefOid,headRefOid,mergeCommit,additions,deletions,changedFiles,url
 gh api repos/<owner>/<repo>/issues/<original-pr>/comments --paginate --jq '.[] | select(.body | contains("/cherry-pick"))'
-gh pr comment <original-pr> --repo <owner/repo> --body '/cherry-pick <target-branch>'
-gh pr list --repo <owner/repo> --state all --base <target-branch> --search '<original-pr>' --json number,title,url,headRefName,headRepositoryOwner,headRepository,createdAt,updatedAt,additions,deletions,changedFiles,mergeable,mergeStateStatus,state
-git fetch <remote> <target-branch> pull/<generated-pr>/head:refs/remotes/<remote>/pr/<generated-pr>
+gh pr comment <original-pr> --repo <owner/repo> --body "/cherry-pick ${target_branch}"
+gh pr list --repo <owner/repo> --state all --base "${target_branch}" --search '<original-pr>' --json number,title,url,headRefName,headRepositoryOwner,headRepository,createdAt,updatedAt,additions,deletions,changedFiles,mergeable,mergeStateStatus,state
+git fetch <remote> "${target_branch}" pull/<generated-pr>/head:refs/remotes/<remote>/pr/<generated-pr>
 git grep -n -E '^(<<<<<<<|=======|>>>>>>>)' refs/remotes/<remote>/pr/<generated-pr> -- .
 git diff --numstat <original-base-sha> <original-head-sha>
 git diff --numstat <generated-base-sha> refs/remotes/<remote>/pr/<generated-pr>
@@ -84,6 +89,7 @@ git diff --numstat <generated-base-sha> refs/remotes/<remote>/pr/<generated-pr>
 ## Decision Rules
 
 - If connector write access fails but `gh` is authenticated, use `gh` for the comment and keep going.
+- If no target branch is specified, do not ask a clarifying question; use `release-8.5`.
 - If the bot does not create a PR, inspect the original PR comments for bot errors before retrying.
 - If GitHub reports `MERGEABLE` but conflict markers exist in files, treat the PR as needing manual conflict cleanup.
 - If the generated PR line count differs from the original, do not assume it is wrong. Release branches often lack or already contain surrounding test/config changes from master.

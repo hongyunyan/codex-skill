@@ -1,4 +1,4 @@
 interface:
   display_name: "Cherry Pick Release PR"
   short_description: "Backport GitHub PRs with conflict checks"
-  default_prompt: "Use $cherry-pick-release-pr to cherry-pick a merged GitHub PR to a release branch and verify the generated PR."
+  default_prompt: "Use $cherry-pick-release-pr to cherry-pick a merged GitHub PR to the default release-8.5 branch and verify the generated PR."
